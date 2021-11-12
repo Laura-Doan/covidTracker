@@ -56,8 +56,12 @@ def create_real_SIR(daily_cases=get_real_data_xls(), population=329500000):
 
 # graphs SIR data
 def graph_SIR(S, I, R):
-    y = range(len(S))
-    graph.plot(y, S)
+    x = range(len(S))
+    graph.plot(x, S, label="S")
+    graph.plot(x, I, label="I")
+    graph.plot(x, R, label="R")
+
+    graph.legend()
     graph.show()
 
 
