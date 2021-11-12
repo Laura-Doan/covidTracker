@@ -39,18 +39,20 @@ def create_real_SIR(daily_cases=get_real_data_xls(), population=329500000):
 
     for day in range(1, len(daily_cases)):
         # the number of people that have recovered on day day
-        recovered_today = 0
+        new_recovered = 0
         # the number of people that have become infectious again on day day
-        susceptible_today = 0
+        new_susceptible = 0
+        # the number of new people infected today
+        new_cases = daily_cases[day]
 
         if day > infectious_period:
-            recovered_today = daily_cases[day-infectious_period]
+            new_recovered = daily_cases[day - infectious_period]
         if day > immune_period + infectious_period:
-            susceptible_today = daily_cases[day - (infectious_period + immune_period)]
+            new_susceptible = daily_cases[day - (infectious_period + immune_period)]
 
-        S.append(S[-1] + susceptible_today - daily_cases[day])
-        I.append(I[-1] + daily_cases[0] - recovered_today)
-        R.append(R[-1] + recovered_today - susceptible_today)
+        S.append(S[-1] + new_susceptible - new_cases)
+        I.append(I[-1] + new_cases - new_recovered)
+        R.append(R[-1] + new_recovered - new_susceptible)
     return S, I, R
 
 
@@ -65,11 +67,23 @@ def graph_SIR(S, I, R):
     graph.show()
 
 
+def graph_percent_I(I, population=329500000):
+    x = range(len(I))
+    y = []
+    for i in I:
+        y.append((i/population)*100)
+
+    graph.plot(x, y)
+    graph.show()
+
+
 # helper function to graph the real-world data
 # Gets data from create real SIR() and sends it to the graph_SIR function
 def real_world_graph(sir = create_real_SIR()):
     S, I, R = sir
     graph_SIR(S, I, R)
+
+    graph_percent_I(I)
 
 
 real_world_graph()
