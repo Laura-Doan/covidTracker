@@ -19,4 +19,35 @@ def get_real_data_xls(filepath="daily_case_data.xls", sheetnum=0, column=2, max_
     for row in range(max_row-1, min_row, step):
         daily_cases.append(int(sheet.cell_value(row, column)))
 
-get_real_data_xls()
+
+# uses a list of new daily cases to create a list for the daily S, I, and R
+# daily cases - a list of new daily cases
+# population - the population the daily_cases data is taken from
+# returns S - a list of individuals susceptible per day
+# returns I - a list of individuals infected per day
+# returns R - a list of individuals that are immune per day
+def create_real_SIR(daily_cases=get_real_data_xls(), population=329500000):
+    # the number of days a person is considered infectious
+    infectious_period = 14
+    # the number of days a person is considered immune after recovery, set equal to len(daily_cases) for indefinite period
+    immune_period = 180
+
+    S = [population-daily_cases[0]]
+    I = [daily_cases[0]]
+    R = [0]
+
+    for day in range(1, len(daily_cases)):
+        # the number of people that have recovered on day day
+        recovered_today = 0
+        # the number of people that have become infectious again on day day
+        susceptible_today = 0
+
+        if day > infectious_period:
+            recovered_today = daily_cases[day-infectious_period]
+        if day > immune_period + infectious_period:
+            susceptible_today = daily_cases[day - (infectious_period + immune_period)]
+
+        S.append(S[-1] + susceptible_today - daily_cases[day])
+        I.append(I[-1] + daily_cases[0] - recovered_today)
+        R.append(R[-1] + recovered_today - susceptible_today)
+    return S, I, R
