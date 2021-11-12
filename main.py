@@ -1,5 +1,5 @@
 import xlrd
-import matplotlib
+import matplotlib.pyplot as graph
 
 
 # gets the new daily cases from a single column of a .xls file and transfers them to the list daily_cases[]
@@ -18,6 +18,7 @@ def get_real_data_xls(filepath="daily_case_data.xls", sheetnum=0, column=2, max_
     daily_cases = []
     for row in range(max_row-1, min_row, step):
         daily_cases.append(int(sheet.cell_value(row, column)))
+    return daily_cases
 
 
 # uses a list of new daily cases to create a list for the daily S, I, and R
@@ -51,3 +52,20 @@ def create_real_SIR(daily_cases=get_real_data_xls(), population=329500000):
         I.append(I[-1] + daily_cases[0] - recovered_today)
         R.append(R[-1] + recovered_today - susceptible_today)
     return S, I, R
+
+
+# graphs SIR data
+def graph_SIR(S, I, R):
+    y = range(len(S))
+    graph.plot(y, S)
+    graph.show()
+
+
+# helper function to graph the real-world data
+# Gets data from create real SIR() and sends it to the graph_SIR function
+def real_world_graph(sir = create_real_SIR()):
+    S, I, R = sir
+    graph_SIR(S, I, R)
+
+
+real_world_graph()
