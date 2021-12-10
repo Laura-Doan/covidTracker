@@ -28,7 +28,7 @@ def get_real_data_xls():
     sheet = book.sheet_by_index(sheetnum)
 
     daily_cases = []
-    for row in range(max_row-1, min_row, step):
+    for row in range(max_row-1, min_row, -1):
         daily_cases.append(int(sheet.cell_value(row, column)))
     return daily_cases
 
@@ -56,7 +56,7 @@ def create_real_SIR(daily_cases=get_real_data_xls()):
         S.append(S[-1] - new_cases)
         I.append(I[-1] + new_cases - new_recovered)
         R.append(R[-1] + new_recovered)
-    return S[210:500], I[210:500], R[210:500]
+    return S, I, R
 
 
 # graphs SIR data
@@ -66,6 +66,8 @@ def graph_SIR(S, I, R):
     plot.plot(x, I, label="I")
     plot.plot(x, R, label="R")
 
+    plot.xlabel("day")
+    plot.ylabel("people")
     plot.legend()
     plot.show()
 
@@ -78,6 +80,8 @@ def graph_percent_I(I):
     for value in I:
         y.append((value/population)*100)
 
+    plot.xlabel("day")
+    plot.ylabel("%I")
     plot.plot(x, y)
     plot.show()
 
@@ -91,23 +95,24 @@ def generate_graphs(sir=create_real_SIR()):
 
 # uses lmfit to find the best fit SIR model by finding the constants that minimize the square of the differance
 # between the infection rate of the real data and the model
-def minimize_square_diff(f2m):
+def minimize_square_diff():
 
     params = lmfit.Parameters()
-    params.add("r0", value=0.000000005, min=0, max=1)
-    params.add("rt", value=0.5, min=0, max=1)
+    params.add("b", value=0.000000005, min=0, max=1)
+    params.add("k", value=0.5, min=0, max=1)
 
-    minner = lmfit.Minimizer(f2m, params)
+    minner = lmfit.Minimizer(generate_constants, params)
     result = minner.minimize()
     lmfit.report_fit(result)
 
-# generates the lists that minimize_square_diff tries to minimize
-def generate_constants_I(params):
-    Sr, Ir, Rr = create_real_SIR(get_real_data_xls())
-    r0 = params["r0"]
-    rt = params["rt"]
 
-    Sm, Im, Rm = create_model_SIR(r0, rt, len(Ir))
+# generates the lists that minimize_square_diff tries to minimize
+def generate_constants(params):
+    Sr, Ir, Rr = create_real_SIR(get_real_data_xls())
+    b = params["b"]
+    rt = params["k"]
+
+    Sm, Im, Rm = create_model_SIR(b, rt, len(Ir))
 
     dif = []
     for day in range(len(Ir)):
@@ -117,12 +122,12 @@ def generate_constants_I(params):
 
 
 # Creates a hypothetical SIR model
-# R0 and rt are constants for an SIR model
+# b and rt are constants for an SIR model
 # sim length is the number of days you want to run the simulation for
 # returns S - a list of individuals susceptible per day
 # returns I - a list of individuals infected per day
 # returns R - a list of individuals that are immune per day
-def create_model_SIR(r0, rt, sim_length):
+def create_model_SIR(b, k, sim_length):
 
     # the number of people that are infected on day 0
     initial_infected = 534962
@@ -132,9 +137,9 @@ def create_model_SIR(r0, rt, sim_length):
     R = [0]
 
     for day in range(1, sim_length):
-        S.append(S[-1] - r0 * (S[-1] * I[-1]))
-        I.append(I[-1] + r0 * S[-2] * I[-1] - rt * I[-1])
-        R.append(R[-1] + rt * I[-2])
+        S.append(S[-1] - b * (S[-1] * I[-1]))
+        I.append(I[-1] + b * S[-2] * I[-1] - k * I[-1])
+        R.append(R[-1] + k * I[-2])
 
     return S, I, R
 
@@ -147,10 +152,12 @@ def graph_SIR_together(S1, I1, R1, S2, I2, R2):
     plot.plot(x, R1, label="R real")
 
     x = range(len(S2))
-    plot.plot(x, S2, label="S hypothetical")
-    plot.plot(x, I2, label="I hypothetical")
-    plot.plot(x, R2, label="R hypothetical")
+    plot.plot(x, S2, label="S model")
+    plot.plot(x, I2, label="I model")
+    plot.plot(x, R2, label="R model")
 
+    plot.ylabel("people")
+    plot.xlabel("day")
     plot.legend()
     plot.show()
 
@@ -170,8 +177,10 @@ def graph_percent_I_together(I1, I2):
     y = []
     for value in I2:
         y.append((value/population)*100)
-    plot.plot(x, y, label="%I hypothetical")
+    plot.plot(x, y, label="%I model")
 
+    plot.xlabel("day")
+    plot.ylabel("%I")
     plot.legend()
     plot.show()
 
@@ -184,8 +193,12 @@ def graph_together(sir1, sir2):
     graph_percent_I_together(I1, I2)
 
 
-minimize_square_diff(generate_constants_I)
+generate_graphs(create_real_SIR(get_real_data_xls()))
 
-# generate_graphs(create_real_SIR(get_real_data_xls()))
-# generate_graphs(create_model_SIR(r0=0.000048141, rt=0.99910904, sim_length=40))
-# graph_together(create_real_SIR(get_real_data_xls()), create_model_SIR(r0=0.00000000068574, rt=0.19980995, sim_length=300))
+max_row = 424
+min_row = 134
+# minimize_square_diff()
+graph_together(create_real_SIR(get_real_data_xls()), create_model_SIR(b=0.00000000068574, k=0.19980995, sim_length=300))
+
+# max_row = 375
+# graph_together(create_real_SIR(get_real_data_xls()), create_model_SIR(b=0.0000000010923, rt=0.31305816, sim_length=175))
